@@ -23,6 +23,8 @@ sealed interface PlayerDialogRequest {
 
     data class SleepTimer(override val playerId: String) : PlayerDialogRequest
 
+    data class Announcement(override val playerId: String) : PlayerDialogRequest
+
     data class Lyrics(override val playerId: String, val trackId: String) : PlayerDialogRequest
 
     data class AudioChain(

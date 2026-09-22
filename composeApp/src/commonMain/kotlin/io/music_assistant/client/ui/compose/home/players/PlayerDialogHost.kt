@@ -72,6 +72,11 @@ fun PlayerDialogHost(
             onDismissRequest = onDismiss,
         )
 
+        is PlayerDialogRequest.Announcement -> AnnouncementDialog(
+            playerName = player.player.name,
+            onDismissRequest = onDismiss,
+        )
+
         is PlayerDialogRequest.Lyrics -> {
             val lyrics = (player.queueInfo?.currentItem?.track as? Track)?.lyrics
                 ?: return DismissEffect(request, onDismiss)
