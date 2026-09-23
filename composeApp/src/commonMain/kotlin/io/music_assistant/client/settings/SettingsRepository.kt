@@ -673,6 +673,18 @@ class SettingsRepository(
         _connectionHistory.update { updated }
     }
 
+    // Announcement UI preference. Device-local by design: once the user changes the
+    // chime toggle, that choice survives app restarts without changing the server/player setting.
+    private val _announcementPreAnnounce = MutableStateFlow(
+        settings.getBoolean("announcement_pre_announce", true),
+    )
+    val announcementPreAnnounce = _announcementPreAnnounce.asStateFlow()
+
+    fun setAnnouncementPreAnnounce(enabled: Boolean) {
+        settings.putBoolean("announcement_pre_announce", enabled)
+        _announcementPreAnnounce.update { enabled }
+    }
+
     // UI preferences
     init {
         // Migrate legacy global "items_row_mode" boolean to per-MediaType "view_mode_*" enum.

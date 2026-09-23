@@ -179,6 +179,9 @@ class WebRTCTransport(
     val sendspinDataChannel: DataChannelWrapper?
         get() = manager?.sendspinDataChannel
 
+    suspend fun openDataChannel(label: String): DataChannelWrapper? =
+        manager?.openDataChannel(label)
+
     val httpProxy: WebRTCHttpProxy = WebRTCHttpProxy(sender = { json -> send(json) })
 
     override fun connect() {
