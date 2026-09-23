@@ -57,6 +57,7 @@ import org.jetbrains.compose.resources.stringResource
 
 private const val DURATION_ROUNDING_MILLIS = 50L
 private const val MILLIS_PER_TENTH_SECOND = 100L
+private const val TENTHS_PER_SECOND = 10L
 
 private enum class AnnouncementMode {
     TYPE,
@@ -362,5 +363,5 @@ internal fun AnnouncementDialog(
 
 private fun formatDurationSeconds(durationMillis: Long): String {
     val tenths = (durationMillis + DURATION_ROUNDING_MILLIS) / MILLIS_PER_TENTH_SECOND
-    return "${tenths / 10}.${tenths % 10}"
+    return "${tenths / TENTHS_PER_SECOND}.${tenths % TENTHS_PER_SECOND}"
 }
