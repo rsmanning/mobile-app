@@ -4,11 +4,15 @@ import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.pingInterval
+import io.ktor.client.plugins.websocket.ws
 import io.ktor.http.URLBuilder
 import io.ktor.http.Url
 import io.ktor.http.encodeURLPathPart
 import io.ktor.http.encodeURLQueryComponent
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
+import io.ktor.websocket.send
 import io.music_assistant.client.data.model.server.AuthorizationResponse
 import io.music_assistant.client.data.model.server.LoginResponse
 import io.music_assistant.client.data.model.server.ServerInfo
@@ -31,7 +35,10 @@ import io.music_assistant.client.utils.myJson
 import io.music_assistant.client.utils.platformLocale
 import io.music_assistant.client.utils.serverLocalizationLocale
 import io.music_assistant.client.utils.update
+import io.music_assistant.client.utils.authenticatedToken
 import io.music_assistant.client.utils.withRefreshedServerInfo
+import io.music_assistant.client.webrtc.DataChannelInbound
+import io.music_assistant.client.webrtc.DataChannelWrapper
 import io.music_assistant.client.webrtc.model.RemoteId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -57,10 +64,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -69,6 +78,16 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+
+private const val LIVE_ANNOUNCEMENT_PATH = "/live_announcement"
+private const val LIVE_ANNOUNCEMENT_CHANNEL = "live_announcement"
+private const val LIVE_ANNOUNCEMENT_STARTED = "started"
+private const val LIVE_ANNOUNCEMENT_FINISHED = "finished"
+private const val LIVE_ANNOUNCEMENT_ERROR = "error"
+private const val LIVE_ANNOUNCEMENT_STOP_MESSAGE = """{"type":"stop"}"""
+private const val LIVE_ANNOUNCEMENT_CHUNK_BYTES = 64 * 1024
+private const val LIVE_ANNOUNCEMENT_START_TIMEOUT_MS = 10_000L
+private const val LIVE_ANNOUNCEMENT_FINISH_TIMEOUT_MS = 360_000L
 
 class KtorServiceClient(
     private val settings: SettingsRepository,
@@ -199,6 +218,161 @@ class KtorServiceClient(
 
     override val webRTCHttpProxy: io.music_assistant.client.webrtc.WebRTCHttpProxy?
         get() = (transport as? WebRTCTransport)?.httpProxy
+
+    override suspend fun playLiveAnnouncement(
+        playerId: String,
+        pcm: ByteArray,
+        sampleRate: Int,
+        channels: Int,
+    ): Result<Unit> {
+        if (pcm.isEmpty()) return Result.failure(IllegalArgumentException("The recording is empty."))
+        val state = _sessionState.value as? SessionState.Connected
+            ?: return Result.failure(IllegalStateException("Music Assistant is not connected."))
+        val token = _sessionState.value.authenticatedToken()
+            ?: return Result.failure(IllegalStateException("Music Assistant is not authenticated."))
+
+        val authMessage = buildJsonObject {
+            put("type", JsonPrimitive("auth"))
+            put("token", JsonPrimitive(token))
+        }.toString()
+        val startMessage = buildJsonObject {
+            put("type", JsonPrimitive("start"))
+            put("player_id", JsonPrimitive(playerId))
+            put("sample_rate", JsonPrimitive(sampleRate))
+            put("channels", JsonPrimitive(channels))
+        }.toString()
+
+        return try {
+            when (state) {
+                is SessionState.Connected.Direct ->
+                    sendDirectLiveAnnouncement(state.connectionInfo, authMessage, startMessage, pcm)
+
+                is SessionState.Connected.WebRTC ->
+                    sendWebRTCLiveAnnouncement(authMessage, startMessage, pcm)
+            }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.w(e) { "Live announcement failed" }
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun sendDirectLiveAnnouncement(
+        connectionInfo: ConnectionInfo,
+        authMessage: String,
+        startMessage: String,
+        pcm: ByteArray,
+    ) {
+        currentClient.ws(urlString = "${connectionInfo.wsUrl}$LIVE_ANNOUNCEMENT_PATH") {
+            send(Frame.Text(authMessage))
+            send(Frame.Text(startMessage))
+            awaitLiveAnnouncementMessage(
+                expectedType = LIVE_ANNOUNCEMENT_STARTED,
+                timeoutMs = LIVE_ANNOUNCEMENT_START_TIMEOUT_MS,
+            )
+            forEachLiveAnnouncementChunk(pcm) { chunk ->
+                send(Frame.Binary(fin = true, data = chunk))
+            }
+            send(Frame.Text(LIVE_ANNOUNCEMENT_STOP_MESSAGE))
+            awaitLiveAnnouncementMessage(
+                expectedType = LIVE_ANNOUNCEMENT_FINISHED,
+                timeoutMs = LIVE_ANNOUNCEMENT_FINISH_TIMEOUT_MS,
+            )
+        }
+    }
+
+    private suspend fun io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
+        .awaitLiveAnnouncementMessage(
+            expectedType: String,
+            timeoutMs: Long,
+        ) {
+        withTimeout(timeoutMs) {
+            while (true) {
+                when (val frame = incoming.receive()) {
+                    is Frame.Text -> {
+                        val message = decodeLiveAnnouncementMessage(frame.readText())
+                        when ((message["type"] as? JsonPrimitive)?.content) {
+                            expectedType -> return@withTimeout
+                            LIVE_ANNOUNCEMENT_ERROR -> throw liveAnnouncementError(message)
+                        }
+                    }
+
+                    is Frame.Close ->
+                        throw IllegalStateException("The live announcement connection was closed.")
+
+                    else -> Unit
+                }
+            }
+        }
+    }
+
+    private suspend fun sendWebRTCLiveAnnouncement(
+        authMessage: String,
+        startMessage: String,
+        pcm: ByteArray,
+    ) {
+        val channel = (transport as? WebRTCTransport)
+            ?.openDataChannel(LIVE_ANNOUNCEMENT_CHANNEL)
+            ?: error("The live announcement data channel is unavailable.")
+        try {
+            channel.send(authMessage)
+            channel.send(startMessage)
+            awaitLiveAnnouncementMessage(
+                channel = channel,
+                expectedType = LIVE_ANNOUNCEMENT_STARTED,
+                timeoutMs = LIVE_ANNOUNCEMENT_START_TIMEOUT_MS,
+            )
+            forEachLiveAnnouncementChunk(pcm, channel::sendBinary)
+            channel.send(LIVE_ANNOUNCEMENT_STOP_MESSAGE)
+            awaitLiveAnnouncementMessage(
+                channel = channel,
+                expectedType = LIVE_ANNOUNCEMENT_FINISHED,
+                timeoutMs = LIVE_ANNOUNCEMENT_FINISH_TIMEOUT_MS,
+            )
+        } finally {
+            channel.close()
+        }
+    }
+
+    private suspend fun awaitLiveAnnouncementMessage(
+        channel: DataChannelWrapper,
+        expectedType: String,
+        timeoutMs: Long,
+    ) {
+        withTimeout(timeoutMs) {
+            channel.inbound.first { inbound ->
+                val text = (inbound as? DataChannelInbound.Text)?.text ?: return@first false
+                val message = decodeLiveAnnouncementMessage(text)
+                when ((message["type"] as? JsonPrimitive)?.content) {
+                    expectedType -> true
+                    LIVE_ANNOUNCEMENT_ERROR -> throw liveAnnouncementError(message)
+                    else -> false
+                }
+            }
+        }
+    }
+
+    private fun decodeLiveAnnouncementMessage(text: String): JsonObject =
+        myJson.decodeFromString<JsonObject>(text)
+
+    private fun liveAnnouncementError(message: JsonObject): IllegalStateException {
+        val detail = (message["message"] as? JsonPrimitive)?.content
+        return IllegalStateException(detail ?: "The announcement failed.")
+    }
+
+    private suspend fun forEachLiveAnnouncementChunk(
+        pcm: ByteArray,
+        sendChunk: suspend (ByteArray) -> Unit,
+    ) {
+        var offset = 0
+        while (offset < pcm.size) {
+            val end = minOf(offset + LIVE_ANNOUNCEMENT_CHUNK_BYTES, pcm.size)
+            sendChunk(pcm.copyOfRange(offset, end))
+            offset = end
+        }
+    }
 
     override fun resolveImageUrl(
         path: String,
