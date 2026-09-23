@@ -417,7 +417,7 @@ class HomeScreenViewModel(
 
     fun clearSleepTimer(playerId: String) = dataSource.clearSleepTimer(playerId)
 
-    suspend fun playLiveAnnouncement(
+    internal suspend fun playLiveAnnouncement(
         playerId: String,
         recording: io.music_assistant.client.ui.compose.home.players.AnnouncementRecording,
     ): Result<Unit> = apiClient.playLiveAnnouncement(
