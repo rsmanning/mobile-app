@@ -120,6 +120,21 @@ class WebRTCConnectionManager(
      * Idempotent — returns the live channel if one is already open, null if it cannot be
      * opened (the `ma-api` proxy path remains a working fallback).
      */
+    suspend fun openDataChannel(label: String): DataChannelWrapper? {
+        val pc = peerConnection ?: return null
+        val channel = pc.createDataChannel(label = label, ordered = true)
+        val opened = withTimeoutOrNull(CHANNEL_OPEN_TIMEOUT_MS) {
+            channel.state.first { it == DataChannelState.Open }
+        }
+        if (opened == null) {
+            logger.w { "$label data channel did not open within ${CHANNEL_OPEN_TIMEOUT_MS}ms" }
+            channel.close()
+            return null
+        }
+        logger.i { "$label data channel ready for use" }
+        return channel
+    }
+
     suspend fun openHttpProxyChannel(): DataChannelWrapper? {
         httpProxyDataChannelInternal?.let { return it }
         val pc = peerConnection ?: return null
