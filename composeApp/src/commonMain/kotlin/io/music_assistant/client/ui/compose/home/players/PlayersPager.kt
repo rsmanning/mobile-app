@@ -121,7 +121,7 @@ import musicassistantclient.composeapp.generated.resources.bound_player_playing_
 import musicassistantclient.composeapp.generated.resources.cd_more
 import musicassistantclient.composeapp.generated.resources.cd_mute
 import musicassistantclient.composeapp.generated.resources.cd_unmute
-import musicassistantclient.composeapp.generated.resources.play_announcement
+import musicassistantclient.composeapp.generated.resources.record_announcement
 import musicassistantclient.composeapp.generated.resources.player_power_off
 import musicassistantclient.composeapp.generated.resources.player_power_on
 import musicassistantclient.composeapp.generated.resources.players_dsp_settings
@@ -505,7 +505,7 @@ private fun ExpandedPlayerPage(
                     IconButton(onClick = onAnnouncementButton) {
                         Icon(
                             imageVector = Icons.Outlined.MicNone,
-                            contentDescription = stringResource(Res.string.play_announcement),
+                            contentDescription = stringResource(Res.string.record_announcement),
                         )
                     }
                     PlayerOverflowMenu(
