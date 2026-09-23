@@ -12,6 +12,12 @@ interface ServiceClient {
     val sessionState: StateFlow<SessionState>
 
     suspend fun sendRequest(request: Request): Result<Answer>
+    suspend fun playLiveAnnouncement(
+        playerId: String,
+        pcm: ByteArray,
+        sampleRate: Int,
+        channels: Int,
+    ): Result<Unit>
     suspend fun login(username: String, password: String)
     suspend fun authorize(token: String, isAutoLogin: Boolean = false)
     fun logout()
