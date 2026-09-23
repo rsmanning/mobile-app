@@ -47,7 +47,7 @@ import musicassistantclient.composeapp.generated.resources.record_announcement
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun AnnouncementDialog(
+internal fun AnnouncementDialog(
     playerName: String,
     onAccept: suspend (AnnouncementRecording) -> Result<Unit>,
     onDismissRequest: () -> Unit,
