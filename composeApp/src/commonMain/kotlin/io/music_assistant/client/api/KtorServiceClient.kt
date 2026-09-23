@@ -2,6 +2,7 @@ package io.music_assistant.client.api
 
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.pingInterval
 import io.ktor.client.plugins.websocket.ws
@@ -10,7 +11,6 @@ import io.ktor.http.Url
 import io.ktor.http.encodeURLPathPart
 import io.ktor.http.encodeURLQueryComponent
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
-import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
