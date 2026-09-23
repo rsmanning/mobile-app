@@ -45,6 +45,7 @@ fun AnnouncementDialog(
     val recorder = rememberAnnouncementRecorder()
     var completedRecording by remember { mutableStateOf<AnnouncementRecording?>(null) }
     val recorderError = recorder.error
+    val completed = completedRecording
 
     val statusText = when {
         recorder.isRecording ->
@@ -65,10 +66,10 @@ fun AnnouncementDialog(
                 },
             )
 
-        completedRecording != null ->
+        completed != null ->
             stringResource(
                 Res.string.announcement_recorded,
-                formatDurationSeconds(completedRecording.durationMillis),
+                formatDurationSeconds(completed.durationMillis),
             )
 
         else ->
