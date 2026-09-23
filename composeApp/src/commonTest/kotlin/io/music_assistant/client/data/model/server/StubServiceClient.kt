@@ -19,6 +19,13 @@ open class StubServiceClient : ServiceClient {
         TODO("Not yet implemented")
     }
 
+    override suspend fun playLiveAnnouncement(
+        playerId: String,
+        pcm: ByteArray,
+        sampleRate: Int,
+        channels: Int,
+    ): Result<Unit> = Result.success(Unit)
+
     override suspend fun login(username: String, password: String) {
     }
 
