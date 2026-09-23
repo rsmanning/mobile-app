@@ -417,6 +417,16 @@ class HomeScreenViewModel(
 
     fun clearSleepTimer(playerId: String) = dataSource.clearSleepTimer(playerId)
 
+    suspend fun playLiveAnnouncement(
+        playerId: String,
+        recording: io.music_assistant.client.ui.compose.home.players.AnnouncementRecording,
+    ): Result<Unit> = apiClient.playLiveAnnouncement(
+        playerId = playerId,
+        pcm = recording.pcm,
+        sampleRate = recording.sampleRate,
+        channels = recording.channels,
+    )
+
     fun onPlayersSortChanged(newSort: List<String>) = dataSource.onPlayersSortChanged(newSort)
     fun openPlayerSettings(id: String) = settings.connectionInfo.value?.webUrl?.let { url ->
         onOpenExternalLink("$url/?code=${currentServerToken().orEmpty()}#/settings/editplayer/$id")
