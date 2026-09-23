@@ -18,6 +18,19 @@ interface ServiceClient {
         sampleRate: Int,
         channels: Int,
     ): Result<Unit>
+
+    suspend fun playLiveAnnouncement(
+        playerId: String,
+        pcm: ByteArray,
+        sampleRate: Int,
+        channels: Int,
+        preAnnounce: Boolean,
+    ): Result<Unit> = playLiveAnnouncement(
+        playerId = playerId,
+        pcm = pcm,
+        sampleRate = sampleRate,
+        channels = channels,
+    )
     suspend fun login(username: String, password: String)
     suspend fun authorize(token: String, isAutoLogin: Boolean = false)
     fun logout()

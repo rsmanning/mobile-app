@@ -12,6 +12,7 @@ object APICommands {
     const val PLAYERS_CMD_GROUP_VOLUME_MUTE = "$PLAYERS_CMD/group_volume_mute"
     const val PLAYERS_CMD_SET_MEMBERS = "$PLAYERS_CMD/set_members"
     const val PLAYERS_CMD_UNGROUP = "$PLAYERS_CMD/ungroup"
+    const val PLAYERS_CMD_PLAY_ANNOUNCEMENT = "$PLAYERS_CMD/play_announcement"
     const val PLAYERS_SLEEP_TIMER_SET = "players/sleep_timer/set"
     const val PLAYERS_SLEEP_TIMER_CLEAR = "players/sleep_timer/clear"
 

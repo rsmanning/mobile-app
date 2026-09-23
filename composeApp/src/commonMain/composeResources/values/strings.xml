@@ -220,7 +220,12 @@
   <string name="nav_search">Search</string>
   <string name="nav_settings">Settings</string>
   <string name="not_connected_retry">Not connected — try again when reconnected</string>
-  <string name="play_announcement">Play announcement</string>
+  <string name="play_announcement">Play Announcement</string>
+  <string name="announcement_mode_type">Type</string>
+  <string name="announcement_mode_speak">Speak</string>
+  <string name="announcement_message_label">Message</string>
+  <string name="announcement_message_placeholder">Type a message to announce</string>
+  <string name="announcement_play_chime_first">Play a chime first</string>
   <string name="record_announcement">Record Announcement</string>
   <string name="announcement_hold_to_record">Hold the microphone to record for %1$s</string>
   <string name="announcement_permission_denied">Microphone permission is required to record.</string>

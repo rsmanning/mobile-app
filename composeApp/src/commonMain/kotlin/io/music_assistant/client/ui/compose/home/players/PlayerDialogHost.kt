@@ -74,10 +74,20 @@ fun PlayerDialogHost(
 
         is PlayerDialogRequest.Announcement -> AnnouncementDialog(
             playerName = player.player.name,
-            onAccept = { recording ->
+            initialPreAnnounce = homeScreenViewModel.announcementPreAnnounce,
+            onPreAnnounceChanged = homeScreenViewModel::setAnnouncementPreAnnounce,
+            onTextAccept = { message, preAnnounce ->
+                homeScreenViewModel.playTextAnnouncement(
+                    playerId = request.playerId,
+                    message = message,
+                    preAnnounce = preAnnounce,
+                )
+            },
+            onRecordingAccept = { recording, preAnnounce ->
                 homeScreenViewModel.playLiveAnnouncement(
                     playerId = request.playerId,
                     recording = recording,
+                    preAnnounce = preAnnounce,
                 )
             },
             onDismissRequest = onDismiss,
