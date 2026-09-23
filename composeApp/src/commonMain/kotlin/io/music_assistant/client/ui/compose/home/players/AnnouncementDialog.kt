@@ -55,6 +55,9 @@ import musicassistantclient.composeapp.generated.resources.common_cancel
 import musicassistantclient.composeapp.generated.resources.play_announcement
 import org.jetbrains.compose.resources.stringResource
 
+private const val DURATION_ROUNDING_MILLIS = 50L
+private const val MILLIS_PER_TENTH_SECOND = 100L
+
 private enum class AnnouncementMode {
     TYPE,
     SPEAK,
@@ -358,6 +361,6 @@ internal fun AnnouncementDialog(
 }
 
 private fun formatDurationSeconds(durationMillis: Long): String {
-    val tenths = (durationMillis + 50L) / 100L
+    val tenths = (durationMillis + DURATION_ROUNDING_MILLIS) / MILLIS_PER_TENTH_SECOND
     return "${tenths / 10}.${tenths % 10}"
 }

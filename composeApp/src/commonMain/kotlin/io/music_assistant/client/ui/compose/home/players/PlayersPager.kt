@@ -121,7 +121,6 @@ import musicassistantclient.composeapp.generated.resources.bound_player_playing_
 import musicassistantclient.composeapp.generated.resources.cd_more
 import musicassistantclient.composeapp.generated.resources.cd_mute
 import musicassistantclient.composeapp.generated.resources.cd_unmute
-import musicassistantclient.composeapp.generated.resources.record_announcement
 import musicassistantclient.composeapp.generated.resources.player_power_off
 import musicassistantclient.composeapp.generated.resources.player_power_on
 import musicassistantclient.composeapp.generated.resources.players_dsp_settings
@@ -130,6 +129,7 @@ import musicassistantclient.composeapp.generated.resources.players_none_availabl
 import musicassistantclient.composeapp.generated.resources.queue_clear
 import musicassistantclient.composeapp.generated.resources.queue_no_other_players
 import musicassistantclient.composeapp.generated.resources.queue_transfer
+import musicassistantclient.composeapp.generated.resources.record_announcement
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 

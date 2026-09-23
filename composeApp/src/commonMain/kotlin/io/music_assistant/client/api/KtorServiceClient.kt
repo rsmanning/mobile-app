@@ -10,6 +10,7 @@ import io.ktor.http.Url
 import io.ktor.http.encodeURLPathPart
 import io.ktor.http.encodeURLQueryComponent
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
+import io.ktor.websocket.DefaultClientWebSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
@@ -29,13 +30,13 @@ import io.music_assistant.client.utils.DataConnectionState
 import io.music_assistant.client.utils.HasConnectionData
 import io.music_assistant.client.utils.NetworkMonitor
 import io.music_assistant.client.utils.SessionState
+import io.music_assistant.client.utils.authenticatedToken
 import io.music_assistant.client.utils.createPlatformHttpClient
 import io.music_assistant.client.utils.currentTimeMillis
 import io.music_assistant.client.utils.myJson
 import io.music_assistant.client.utils.platformLocale
 import io.music_assistant.client.utils.serverLocalizationLocale
 import io.music_assistant.client.utils.update
-import io.music_assistant.client.utils.authenticatedToken
 import io.music_assistant.client.utils.withRefreshedServerInfo
 import io.music_assistant.client.webrtc.DataChannelInbound
 import io.music_assistant.client.webrtc.DataChannelWrapper
@@ -298,8 +299,7 @@ class KtorServiceClient(
         }
     }
 
-    private suspend fun io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
-        .awaitLiveAnnouncementMessage(
+    private suspend fun DefaultClientWebSocketSession.awaitLiveAnnouncementMessage(
             expectedType: String,
             timeoutMs: Long,
         ) {
@@ -315,7 +315,7 @@ class KtorServiceClient(
                     }
 
                     is Frame.Close ->
-                        throw IllegalStateException("The live announcement connection was closed.")
+                        error("The live announcement connection was closed.")
 
                     else -> Unit
                 }
