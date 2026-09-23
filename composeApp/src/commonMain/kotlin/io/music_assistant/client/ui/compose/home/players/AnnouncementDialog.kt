@@ -3,12 +3,16 @@ package io.music_assistant.client.ui.compose.home.players
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.MicNone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -20,12 +24,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import musicassistantclient.composeapp.generated.resources.Res
 import musicassistantclient.composeapp.generated.resources.announcement_hold_to_record
 import musicassistantclient.composeapp.generated.resources.announcement_permission_denied
@@ -33,21 +39,34 @@ import musicassistantclient.composeapp.generated.resources.announcement_recorded
 import musicassistantclient.composeapp.generated.resources.announcement_recording
 import musicassistantclient.composeapp.generated.resources.announcement_recording_failed
 import musicassistantclient.composeapp.generated.resources.announcement_recording_unsupported
-import musicassistantclient.composeapp.generated.resources.common_done
-import musicassistantclient.composeapp.generated.resources.play_announcement
+import musicassistantclient.composeapp.generated.resources.announcement_send_failed
+import musicassistantclient.composeapp.generated.resources.announcement_sending
+import musicassistantclient.composeapp.generated.resources.common_accept
+import musicassistantclient.composeapp.generated.resources.common_cancel
+import musicassistantclient.composeapp.generated.resources.record_announcement
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AnnouncementDialog(
     playerName: String,
+    onAccept: suspend (AnnouncementRecording) -> Result<Unit>,
     onDismissRequest: () -> Unit,
 ) {
     val recorder = rememberAnnouncementRecorder()
+    val scope = rememberCoroutineScope()
     var completedRecording by remember { mutableStateOf<AnnouncementRecording?>(null) }
+    var isSending by remember { mutableStateOf(false) }
+    var sendError by remember { mutableStateOf<String?>(null) }
+
     val recorderError = recorder.error
     val completed = completedRecording
+    val genericSendError = stringResource(Res.string.announcement_send_failed)
 
     val statusText = when {
+        isSending -> stringResource(Res.string.announcement_sending)
+
+        sendError != null -> sendError.orEmpty()
+
         recorder.isRecording ->
             stringResource(Res.string.announcement_recording)
 
@@ -78,13 +97,20 @@ fun AnnouncementDialog(
 
     val dismiss = {
         recorder.cancel()
+        completedRecording = null
         onDismissRequest()
     }
 
     AlertDialog(
-        onDismissRequest = dismiss,
+        onDismissRequest = {
+            if (!isSending) dismiss()
+        },
         title = {
-            Text(stringResource(Res.string.play_announcement))
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(Res.string.record_announcement),
+                textAlign = TextAlign.Center,
+            )
         },
         text = {
             Column(
@@ -92,6 +118,7 @@ fun AnnouncementDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
+                    modifier = Modifier.fillMaxWidth(),
                     text = statusText,
                     textAlign = TextAlign.Center,
                 )
@@ -99,19 +126,22 @@ fun AnnouncementDialog(
                 Surface(
                     modifier = Modifier
                         .size(96.dp)
-                        .pointerInput(recorder) {
-                            detectTapGestures(
-                                onPress = {
-                                    completedRecording = null
-                                    if (recorder.start()) {
-                                        if (tryAwaitRelease()) {
-                                            completedRecording = recorder.finish()
-                                        } else {
-                                            recorder.cancel()
+                        .pointerInput(recorder, isSending) {
+                            if (!isSending) {
+                                detectTapGestures(
+                                    onPress = {
+                                        sendError = null
+                                        completedRecording = null
+                                        if (recorder.start()) {
+                                            if (tryAwaitRelease()) {
+                                                completedRecording = recorder.finish()
+                                            } else {
+                                                recorder.cancel()
+                                            }
                                         }
-                                    }
-                                },
-                            )
+                                    },
+                                )
+                            }
                         },
                     shape = CircleShape,
                     color = if (recorder.isRecording) {
@@ -135,9 +165,49 @@ fun AnnouncementDialog(
                 }
             }
         },
+        dismissButton = {
+            TextButton(
+                enabled = !isSending,
+                onClick = dismiss,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(Res.string.common_cancel))
+                }
+            }
+        },
         confirmButton = {
-            TextButton(onClick = dismiss) {
-                Text(stringResource(Res.string.common_done))
+            TextButton(
+                enabled = completed != null && !recorder.isRecording && !isSending,
+                onClick = {
+                    val recording = completedRecording ?: return@TextButton
+                    isSending = true
+                    sendError = null
+                    scope.launch {
+                        val result = onAccept(recording)
+                        isSending = false
+                        result.fold(
+                            onSuccess = { dismiss() },
+                            onFailure = { error ->
+                                sendError = error.message?.takeIf { it.isNotBlank() }
+                                    ?: genericSendError
+                            },
+                        )
+                    }
+                },
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(Res.string.common_accept))
+                }
             }
         },
     )
