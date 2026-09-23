@@ -17,7 +17,9 @@ interface ServiceClient {
         pcm: ByteArray,
         sampleRate: Int,
         channels: Int,
-    ): Result<Unit>
+    ): Result<Unit> = Result.failure(
+        UnsupportedOperationException("Live announcements are not supported by this client."),
+    )
 
     suspend fun playLiveAnnouncement(
         playerId: String,
