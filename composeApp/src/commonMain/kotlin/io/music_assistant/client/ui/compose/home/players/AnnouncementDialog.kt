@@ -20,6 +20,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -50,6 +51,8 @@ import musicassistantclient.composeapp.generated.resources.announcement_recordin
 import musicassistantclient.composeapp.generated.resources.announcement_recording_unsupported
 import musicassistantclient.composeapp.generated.resources.announcement_send_failed
 import musicassistantclient.composeapp.generated.resources.announcement_sending
+import musicassistantclient.composeapp.generated.resources.announcement_volume
+import musicassistantclient.composeapp.generated.resources.announcement_volume_default
 import musicassistantclient.composeapp.generated.resources.common_accept
 import musicassistantclient.composeapp.generated.resources.common_cancel
 import musicassistantclient.composeapp.generated.resources.play_announcement
@@ -58,6 +61,8 @@ import org.jetbrains.compose.resources.stringResource
 private const val DURATION_ROUNDING_MILLIS = 50L
 private const val MILLIS_PER_TENTH_SECOND = 100L
 private const val TENTHS_PER_SECOND = 10L
+private const val DEFAULT_VOLUME_POSITION = 50f
+private const val VOLUME_STEPS = 99
 
 private enum class AnnouncementMode {
     TYPE,
@@ -69,8 +74,8 @@ internal fun AnnouncementDialog(
     playerName: String,
     initialPreAnnounce: Boolean,
     onPreAnnounceChanged: (Boolean) -> Unit,
-    onTextAccept: suspend (String, Boolean) -> Result<Unit>,
-    onRecordingAccept: suspend (AnnouncementRecording, Boolean) -> Result<Unit>,
+    onTextAccept: suspend (String, Boolean, Int?) -> Result<Unit>,
+    onRecordingAccept: suspend (AnnouncementRecording, Boolean, Int?) -> Result<Unit>,
     onDismissRequest: () -> Unit,
 ) {
     val recorder = rememberAnnouncementRecorder()
@@ -79,6 +84,7 @@ internal fun AnnouncementDialog(
     var message by remember { mutableStateOf("") }
     var completedRecording by remember { mutableStateOf<AnnouncementRecording?>(null) }
     var preAnnounce by remember(initialPreAnnounce) { mutableStateOf(initialPreAnnounce) }
+    var volumeOverride by remember { mutableStateOf<Int?>(null) }
     var isSending by remember { mutableStateOf(false) }
     var sendError by remember { mutableStateOf<String?>(null) }
 
@@ -298,6 +304,33 @@ internal fun AnnouncementDialog(
                         },
                     )
                 }
+
+                Spacer(Modifier.height(16.dp))
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = stringResource(Res.string.announcement_volume),
+                        )
+                        Text(
+                            text = volumeOverride?.let { "$it%" }
+                                ?: stringResource(Res.string.announcement_volume_default),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Slider(
+                        value = volumeOverride?.toFloat() ?: DEFAULT_VOLUME_POSITION,
+                        onValueChange = { volumeOverride = it.toInt() },
+                        enabled = !isSending && !recorder.isRecording,
+                        valueRange = 0f..100f,
+                        steps = VOLUME_STEPS,
+                    )
+                }
             }
         },
         dismissButton = {
@@ -324,7 +357,7 @@ internal fun AnnouncementDialog(
                     scope.launch {
                         val result = when (mode) {
                             AnnouncementMode.TYPE ->
-                                onTextAccept(message.trim(), preAnnounce)
+                                onTextAccept(message.trim(), preAnnounce, volumeOverride)
 
                             AnnouncementMode.SPEAK -> {
                                 val recording = completedRecording
@@ -333,7 +366,7 @@ internal fun AnnouncementDialog(
                                         IllegalStateException("No completed announcement recording."),
                                     )
                                 } else {
-                                    onRecordingAccept(recording, preAnnounce)
+                                    onRecordingAccept(recording, preAnnounce, volumeOverride)
                                 }
                             }
                         }
