@@ -427,11 +427,13 @@ class HomeScreenViewModel(
         playerId: String,
         message: String,
         preAnnounce: Boolean,
+        volumeLevel: Int?,
     ): Result<Unit> = apiClient.sendRequest(
         Request.Player.playAnnouncement(
             playerId = playerId,
             message = message,
             preAnnounce = preAnnounce,
+            volumeLevel = volumeLevel,
         ),
     ).map { Unit }
 
@@ -439,12 +441,14 @@ class HomeScreenViewModel(
         playerId: String,
         recording: io.music_assistant.client.ui.compose.home.players.AnnouncementRecording,
         preAnnounce: Boolean,
+        volumeLevel: Int?,
     ): Result<Unit> = apiClient.playLiveAnnouncement(
         playerId = playerId,
         pcm = recording.pcm,
         sampleRate = recording.sampleRate,
         channels = recording.channels,
         preAnnounce = preAnnounce,
+        volumeLevel = volumeLevel,
     )
 
     fun onPlayersSortChanged(newSort: List<String>) = dataSource.onPlayersSortChanged(newSort)
