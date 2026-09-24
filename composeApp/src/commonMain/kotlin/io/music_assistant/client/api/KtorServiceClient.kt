@@ -231,6 +231,7 @@ class KtorServiceClient(
         sampleRate = sampleRate,
         channels = channels,
         preAnnounce = false,
+        volumeLevel = null,
     )
 
     override suspend fun playLiveAnnouncement(
@@ -239,6 +240,22 @@ class KtorServiceClient(
         sampleRate: Int,
         channels: Int,
         preAnnounce: Boolean,
+    ): Result<Unit> = playLiveAnnouncement(
+        playerId = playerId,
+        pcm = pcm,
+        sampleRate = sampleRate,
+        channels = channels,
+        preAnnounce = preAnnounce,
+        volumeLevel = null,
+    )
+
+    override suspend fun playLiveAnnouncement(
+        playerId: String,
+        pcm: ByteArray,
+        sampleRate: Int,
+        channels: Int,
+        preAnnounce: Boolean,
+        volumeLevel: Int?,
     ): Result<Unit> {
         if (pcm.isEmpty()) return Result.failure(IllegalArgumentException("The recording is empty."))
         val state = _sessionState.value as? SessionState.Connected
@@ -256,6 +273,7 @@ class KtorServiceClient(
             put("sample_rate", JsonPrimitive(sampleRate))
             put("channels", JsonPrimitive(channels))
             put("pre_announce", JsonPrimitive(preAnnounce))
+            volumeLevel?.let { put("volume_level", JsonPrimitive(it)) }
         }.toString()
 
         return try {
