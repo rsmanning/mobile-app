@@ -226,6 +226,8 @@
   <string name="announcement_message_label">Message</string>
   <string name="announcement_message_placeholder">Type a message to announce</string>
   <string name="announcement_play_chime_first">Play a chime first</string>
+  <string name="announcement_volume">Volume</string>
+  <string name="announcement_volume_default">Default</string>
   <string name="record_announcement">Record Announcement</string>
   <string name="announcement_hold_to_record">Hold the microphone to record for %1$s</string>
   <string name="announcement_permission_denied">Microphone permission is required to record.</string>
