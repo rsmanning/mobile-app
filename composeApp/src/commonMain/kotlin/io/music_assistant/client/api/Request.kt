@@ -85,6 +85,21 @@ data class Request @OptIn(ExperimentalUuidApi::class) constructor(
             },
         )
 
+        fun playAnnouncement(
+            playerId: String,
+            message: String,
+            preAnnounce: Boolean,
+            volumeLevel: Int? = null,
+        ) = Request(
+            command = APICommands.PLAYERS_CMD_PLAY_ANNOUNCEMENT,
+            args = buildJsonObject {
+                put("player_id", JsonPrimitive(playerId))
+                put("message", JsonPrimitive(message))
+                put("pre_announce", JsonPrimitive(preAnnounce))
+                volumeLevel?.let { put("volume_level", JsonPrimitive(it)) }
+            },
+        )
+
         fun seek(
             queueId: String,
             position: Long,

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.MicNone
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -128,6 +129,7 @@ import musicassistantclient.composeapp.generated.resources.players_none_availabl
 import musicassistantclient.composeapp.generated.resources.queue_clear
 import musicassistantclient.composeapp.generated.resources.queue_no_other_players
 import musicassistantclient.composeapp.generated.resources.queue_transfer
+import musicassistantclient.composeapp.generated.resources.record_announcement
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -255,6 +257,11 @@ fun PlayersPager(
                         dialogRequest = PlayerDialogRequest.SleepTimer(playerId)
                     }
                 }
+                val onAnnouncementButton: () -> Unit = remember(playerId) {
+                    {
+                        dialogRequest = PlayerDialogRequest.Announcement(playerId)
+                    }
+                }
                 val onLyricsClick: () -> Unit = remember(playerId, trackId) {
                     {
                         trackId?.let { dialogRequest = PlayerDialogRequest.Lyrics(playerId, it) }
@@ -334,6 +341,7 @@ fun PlayersPager(
                                 onGroupButton = onGroupButton,
                                 onDspButton = onDspButton.takeIf { !player.player.isGroup },
                                 onSleepTimerButton = onSleepTimerButton.takeIf { sleepTimerSupported },
+                                onAnnouncementButton = onAnnouncementButton,
                                 playerAction = playerAction1,
                                 onAddToPlaylist = onAddToPlaylist,
                                 onFavoriteClick = {
@@ -427,6 +435,7 @@ private fun ExpandedPlayerPage(
     onGroupButton: () -> Unit,
     onDspButton: (() -> Unit)?,
     onSleepTimerButton: (() -> Unit)?,
+    onAnnouncementButton: () -> Unit,
     playerAction: (PlayerData, PlayerAction) -> Unit,
     onAddToPlaylist: ((AppMediaItem) -> Unit)? = null,
     onFavoriteClick: (AppMediaItem) -> Unit,
@@ -492,19 +501,27 @@ private fun ExpandedPlayerPage(
                 )
             },
             end = {
-                PlayerOverflowMenu(
-                    currentPlayer = player,
-                    allPlayers = allPlayers,
-                    playerAction = { playerAction(player, it) },
-                    queueAction = queueAction,
-                    navigateToItem = {
-                        navigateToItem(it)
-                        onClose()
-                    },
-                    onPlayerSelected = { moveToPlayer(it) },
-                    onOpenDsp = onDspButton,
-                    onAddToPlaylist = onAddToPlaylist,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onAnnouncementButton) {
+                        Icon(
+                            imageVector = Icons.Outlined.MicNone,
+                            contentDescription = stringResource(Res.string.record_announcement),
+                        )
+                    }
+                    PlayerOverflowMenu(
+                        currentPlayer = player,
+                        allPlayers = allPlayers,
+                        playerAction = { playerAction(player, it) },
+                        queueAction = queueAction,
+                        navigateToItem = {
+                            navigateToItem(it)
+                            onClose()
+                        },
+                        onPlayerSelected = { moveToPlayer(it) },
+                        onOpenDsp = onDspButton,
+                        onAddToPlaylist = onAddToPlaylist,
+                    )
+                }
             },
         )
 
@@ -1016,6 +1033,7 @@ fun ExpandedPlayerPagePreview() {
             onGroupButton = {},
             onDspButton = null,
             onSleepTimerButton = null,
+            onAnnouncementButton = {},
             playerAction = { _, _ -> },
             onFavoriteClick = {},
             onClose = {},
@@ -1053,6 +1071,7 @@ fun ExpandedPlayerPageMediumScreenPreview() {
             onGroupButton = {},
             onDspButton = null,
             onSleepTimerButton = null,
+            onAnnouncementButton = {},
             playerAction = { _, _ -> },
             onFavoriteClick = {},
             onClose = {},
@@ -1090,6 +1109,7 @@ fun ExpandedPlayerPageExpandedScreenPreview() {
             onGroupButton = {},
             onDspButton = null,
             onSleepTimerButton = null,
+            onAnnouncementButton = {},
             playerAction = { _, _ -> },
             onFavoriteClick = {},
             onClose = {},
@@ -1131,6 +1151,7 @@ fun ExpandedPlayerPageExpandedScreenPlusPreview() {
             onGroupButton = {},
             onDspButton = null,
             onSleepTimerButton = null,
+            onAnnouncementButton = {},
             playerAction = { _, _ -> },
             onFavoriteClick = {},
             onClose = {},
@@ -1169,6 +1190,7 @@ fun ExpandedPlayerPagePhoneLandscapePreview() {
             onGroupButton = {},
             onDspButton = null,
             onSleepTimerButton = null,
+            onAnnouncementButton = {},
             playerAction = { _, _ -> },
             onFavoriteClick = {},
             onClose = {},
@@ -1206,6 +1228,7 @@ fun ExpandedPlayerPageLargeScreenPreview() {
             onGroupButton = {},
             onDspButton = null,
             onSleepTimerButton = null,
+            onAnnouncementButton = {},
             playerAction = { _, _ -> },
             onFavoriteClick = {},
             onClose = {},

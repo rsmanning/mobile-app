@@ -417,6 +417,40 @@ class HomeScreenViewModel(
 
     fun clearSleepTimer(playerId: String) = dataSource.clearSleepTimer(playerId)
 
+    val announcementPreAnnounce: Boolean
+        get() = settings.announcementPreAnnounce.value
+
+    fun setAnnouncementPreAnnounce(enabled: Boolean) =
+        settings.setAnnouncementPreAnnounce(enabled)
+
+    internal suspend fun playTextAnnouncement(
+        playerId: String,
+        message: String,
+        preAnnounce: Boolean,
+        volumeLevel: Int?,
+    ): Result<Unit> = apiClient.sendRequest(
+        Request.Player.playAnnouncement(
+            playerId = playerId,
+            message = message,
+            preAnnounce = preAnnounce,
+            volumeLevel = volumeLevel,
+        ),
+    ).map { Unit }
+
+    internal suspend fun playLiveAnnouncement(
+        playerId: String,
+        recording: io.music_assistant.client.ui.compose.home.players.AnnouncementRecording,
+        preAnnounce: Boolean,
+        volumeLevel: Int?,
+    ): Result<Unit> = apiClient.playLiveAnnouncement(
+        playerId = playerId,
+        pcm = recording.pcm,
+        sampleRate = recording.sampleRate,
+        channels = recording.channels,
+        preAnnounce = preAnnounce,
+        volumeLevel = volumeLevel,
+    )
+
     fun onPlayersSortChanged(newSort: List<String>) = dataSource.onPlayersSortChanged(newSort)
     fun openPlayerSettings(id: String) = settings.connectionInfo.value?.webUrl?.let { url ->
         onOpenExternalLink("$url/?code=${currentServerToken().orEmpty()}#/settings/editplayer/$id")

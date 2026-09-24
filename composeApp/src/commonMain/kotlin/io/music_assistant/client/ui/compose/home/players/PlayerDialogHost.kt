@@ -72,6 +72,29 @@ fun PlayerDialogHost(
             onDismissRequest = onDismiss,
         )
 
+        is PlayerDialogRequest.Announcement -> AnnouncementDialog(
+            playerName = player.player.name,
+            initialPreAnnounce = homeScreenViewModel.announcementPreAnnounce,
+            onPreAnnounceChanged = homeScreenViewModel::setAnnouncementPreAnnounce,
+            onTextAccept = { message, preAnnounce, volumeLevel ->
+                homeScreenViewModel.playTextAnnouncement(
+                    playerId = request.playerId,
+                    message = message,
+                    preAnnounce = preAnnounce,
+                    volumeLevel = volumeLevel,
+                )
+            },
+            onRecordingAccept = { recording, preAnnounce, volumeLevel ->
+                homeScreenViewModel.playLiveAnnouncement(
+                    playerId = request.playerId,
+                    recording = recording,
+                    preAnnounce = preAnnounce,
+                    volumeLevel = volumeLevel,
+                )
+            },
+            onDismissRequest = onDismiss,
+        )
+
         is PlayerDialogRequest.Lyrics -> {
             val lyrics = (player.queueInfo?.currentItem?.track as? Track)?.lyrics
                 ?: return DismissEffect(request, onDismiss)
