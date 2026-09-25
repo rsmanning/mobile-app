@@ -110,6 +110,13 @@ object APICommands {
     const val AUTH_SCOPES = "auth/scopes"
     const val AUTH = "auth"
 
+    // Dashboard casting (server schema 39+).
+    const val DASHBOARD_DASHBOARDS = "dashboard/dashboards"
+    const val DASHBOARD_SESSIONS = "dashboard/sessions"
+    const val DASHBOARD_SHOW = "dashboard/show"
+    const val DASHBOARD_HIDE = "dashboard/hide"
+    const val DASHBOARD_GET_URL = "dashboard/get_url"
+
     // AI Radio plugin (optional provider, domain "ai_radio"). Only present when the
     // plugin is installed, so every call site must go through the availability gate.
     const val AI_RADIO_STATIONS_LIST = "ai_radio/stations/list"

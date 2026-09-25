@@ -7,6 +7,7 @@ import io.music_assistant.client.data.model.client.MediaType
 import io.music_assistant.client.data.model.client.QueueOption
 import io.music_assistant.client.data.model.client.RepeatMode
 import io.music_assistant.client.data.model.client.items.MarkableItem
+import io.music_assistant.client.data.model.server.DashboardType
 import io.music_assistant.client.data.model.server.DspConfig
 import io.music_assistant.client.utils.myJson
 import kotlinx.serialization.SerialName
@@ -172,6 +173,50 @@ data class Request @OptIn(ExperimentalUuidApi::class) constructor(
             command = APICommands.PLAYERS_CMD_UNGROUP,
             args = buildJsonObject {
                 put("player_id", JsonPrimitive(playerId))
+            },
+        )
+    }
+
+    data object Dashboard {
+        fun devices(type: DashboardType? = null) = Request(
+            command = APICommands.DASHBOARD_DASHBOARDS,
+            args = type?.let {
+                buildJsonObject {
+                    put("dashboard", JsonPrimitive(it.serverValue))
+                }
+            },
+        )
+
+        fun sessions() = Request(command = APICommands.DASHBOARD_SESSIONS)
+
+        fun show(
+            dashboardId: String,
+            type: DashboardType,
+            playerId: String? = null,
+        ) = Request(
+            command = APICommands.DASHBOARD_SHOW,
+            args = buildJsonObject {
+                put("dashboard_id", JsonPrimitive(dashboardId))
+                put("dashboard", JsonPrimitive(type.serverValue))
+                playerId?.let { put("player_id", JsonPrimitive(it)) }
+            },
+        )
+
+        fun hide(dashboardId: String) = Request(
+            command = APICommands.DASHBOARD_HIDE,
+            args = buildJsonObject {
+                put("dashboard_id", JsonPrimitive(dashboardId))
+            },
+        )
+
+        fun getUrl(
+            type: DashboardType,
+            playerId: String? = null,
+        ) = Request(
+            command = APICommands.DASHBOARD_GET_URL,
+            args = buildJsonObject {
+                put("dashboard", JsonPrimitive(type.serverValue))
+                playerId?.let { put("player_id", JsonPrimitive(it)) }
             },
         )
     }

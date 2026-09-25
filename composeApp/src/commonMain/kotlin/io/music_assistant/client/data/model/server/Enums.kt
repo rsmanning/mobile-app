@@ -87,6 +87,18 @@ enum class EventType {
     @SerialName("providers_updated")
     PROVIDERS_UPDATED,
 
+    @SerialName("dashboards_updated")
+    DASHBOARDS_UPDATED,
+
+    @SerialName("dashboard_sessions_updated")
+    DASHBOARD_SESSIONS_UPDATED,
+
+    @SerialName("dashboard_show")
+    DASHBOARD_SHOW,
+
+    @SerialName("dashboard_hide")
+    DASHBOARD_HIDE,
+
     @SerialName("player_config_updated")
     PLAYER_CONFIG_UPDATED,
 
